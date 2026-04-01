@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>雪室出入庫管理 | 農家DX</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+    * { font-family: 'Noto Sans JP', sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
+    body { background: #f0f5fa; margin: 0; }
+    .big-btn { min-height: 64px; font-size: 20px; font-weight: 700; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.1s, box-shadow 0.1s; cursor: pointer; border: none; width: 100%; padding: 16px 24px; }
+    .big-btn:active { transform: scale(0.97); }
+    .btn-in { background: #22c55e; color: white; box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
+    .btn-in:active { background: #16a34a; }
+    .btn-out { background: #f97316; color: white; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }
+    .btn-out:active { background: #ea580c; }
+    .btn-blue { background: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
+    .btn-blue:active { background: #1d4ed8; }
+    .btn-gray { background: #e5e7eb; color: #374151; }
+    .btn-gray:active { background: #d1d5db; }
+    .btn-white { background: white; color: #1f2937; border: 2px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .btn-white.selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .btn-danger { background: #ef4444; color: white; }
+    .card { background: white; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px; }
+    .input-big { border: 2px solid #d1d5db; border-radius: 12px; padding: 14px 16px; width: 100%; font-size: 20px; font-weight: 500; box-sizing: border-box; user-select: text; }
+    .input-big:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    select.input-big { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%236b7280' d='M8 11L2 5h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+    .label { font-size: 16px; font-weight: 700; color: #374151; margin-bottom: 8px; display: block; }
+    .snow-header { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%); }
+    .badge-in { background: #dcfce7; color: #166534; padding: 4px 14px; border-radius: 9999px; font-size: 16px; font-weight: 700; }
+    .badge-out { background: #ffedd5; color: #9a3412; padding: 4px 14px; border-radius: 9999px; font-size: 16px; font-weight: 700; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+    .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 16px 28px; border-radius: 12px; font-size: 18px; font-weight: 700; z-index: 200; animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards; }
+    @keyframes toastIn { from { opacity: 0; top: 60px; } to { opacity: 1; top: 80px; } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+    .history-item { border-left: 4px solid; padding: 12px 16px; background: white; border-radius: 0 12px 12px 0; margin-bottom: 8px; }
+    .history-in { border-color: #22c55e; }
+    .history-out { border-color: #f97316; }
+    /* レスポンシブ: タブレット横置き・大画面 */
+    @media (min-width: 768px) {
+      .big-btn { min-height: 72px; font-size: 22px; }
+      .home-main-btns .big-btn { min-height: 180px !important; font-size: 32px !important; }
+      .home-main-btns .big-btn span.btn-icon { font-size: 56px !important; }
+      .item-grid { grid-template-columns: repeat(3, 1fr) !important; }
+      .unit-grid { grid-template-columns: repeat(4, 1fr) !important; }
+      .card { padding: 24px; }
+      .input-big { font-size: 22px; padding: 16px 18px; }
+      .confirm-row { font-size: 20px; }
+    }
+
+    /* レスポンシブ: スマホ小画面 */
+    @media (max-width: 374px) {
+      .big-btn { min-height: 56px; font-size: 17px; padding: 12px 16px; }
+      .home-main-btns .big-btn { min-height: 110px !important; font-size: 22px !important; }
+      .card { padding: 14px; }
+      .input-big { font-size: 17px; padding: 12px 14px; }
+    }
+
+    /* タブレット縦置き */
+    @media (min-width: 768px) and (orientation: portrait) {
+      .home-main-btns { padding-top: 20vh; }
+    }
+
+    /* タブレット横置き */
+    @media (min-width: 768px) and (orientation: landscape) {
+      .home-main-btns { padding-top: 8vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+// ================================================================
+//  雪室出入庫管理 v3.0 — GAS連携タブレットアプリ
+//  作業者: 入庫・出庫の記録のみ
+//  管理者: ヘッダー長押しで設定・履歴・在庫を表示
+//  データ: Googleスプレッドシート ← GAS経由で自動同期
+// ================================================================
+
+// ── GAS Web App URL ──
+// セキュリティのためURLはコードに書かず、初回起動時にパスワードと一緒に設定します
+// 設定値はlocalStorageに保存されるので、同じ端末では再入力不要です
+const GAS_CONFIG_KEY = "yukimuro_gas_config";
+
+function loadGasConfig() {
+  try { const raw = localStorage.getItem(GAS_CONFIG_KEY); if (raw) return JSON.parse(raw); } catch(e) {}
+  return null;
+}
+function saveGasConfig(config) {
+  try { localStorage.setItem(GAS_CONFIG_KEY, JSON.stringify(config)); } catch(e) {}
+}
+
+// ── フォールバック用プリセット（GAS未接続時に使用）──
+const ITEMS_PRESET = [
+  { name: "コシヒカリ",       category: "rice", emoji: "🌾" },
+  { name: "こしいぶき",       category: "rice", emoji: "🌾" },
+  { name: "新之助",           category: "rice", emoji: "🌾" },
+  { name: "ひとめぼれ",       category: "rice", emoji: "🌾" },
+  { name: "あきたこまち",     category: "rice", emoji: "🌾" },
+  { name: "つや姫",           category: "rice", emoji: "🌾" },
+  { name: "ミルキークイーン", category: "rice", emoji: "🌾" },
+  { name: "もち米",           category: "rice", emoji: "🌾" },
+  { name: "玄米",             category: "rice", emoji: "🌾" },
+];
+const UNITS = ["袋(30kg)", "袋(10kg)", "袋(5kg)", "俵", "kg", "本", "箱", "ケース"];
+const STORAGE_KEY = "yukimuro_v3";
+
+// ── GAS通信（設定から URL と API キーを取得）──
+async function gasGet(action) {
+  const config = loadGasConfig();
+  if (!config?.url) return null;
+  try {
+    const res = await fetch(`${config.url}?action=${action}&key=${encodeURIComponent(config.apiKey || "")}`);
+    return await res.json();
+  } catch (e) { console.error("GAS GET error:", e); return null; }
+}
+
+async function gasPost(payload) {
+  const config = loadGasConfig();
+  if (!config?.url) return null;
+  try {
+    const res = await fetch(config.url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ ...payload, key: config.apiKey || "" }),
+    });
+    return await res.json();
+  } catch (e) { console.error("GAS POST error:", e); return null; }
+}
+
+// ── ローカルストレージ（オフラインバックアップ）──
+function loadData() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) return JSON.parse(raw); } catch(e) {}
+  return { rooms: [{ id: "r1", name: "雪室1号" }, { id: "r2", name: "雪室2号" }], workers: [{ id: "w1", name: "サンプル太郎" }], records: [], customItems: [], gasConnected: false };
+}
+function saveData(data) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {} }
+
+const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const fmtDate = (iso) => { const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()}`; };
+const fmtDateFull = (iso) => { const d=new Date(iso); return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`; };
+
+// ================================================================
+//  App（認証ゲート付き）
+// ================================================================
+const AUTH_KEY = "yukimuro_auth";
+const APP_PASSWORD = "yukimuro2026"; // ← 利用パスワード（変更してください）
+
+function App() {
+  const [authed, setAuthed] = useState(() => {
+    try { return localStorage.getItem(AUTH_KEY) === "ok"; } catch(e) { return false; }
+  });
+
+  if (!authed) {
+    return <LoginScreen onSuccess={() => { try { localStorage.setItem(AUTH_KEY, "ok"); } catch(e) {} setAuthed(true); }} />;
+  }
+  return <MainApp />;
+}
+
+// ── ログイン画面 ──
+function LoginScreen({ onSuccess }) {
+  const [pw, setPw] = useState("");
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (pw === APP_PASSWORD) {
+      onSuccess();
+    } else {
+      setError(true);
+      setPw("");
+      setTimeout(() => setError(false), 2000);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{background:"linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%)"}}>
+      <div className="card w-full max-w-sm mx-4 text-center">
+        <p style={{fontSize:"56px",marginBottom:"12px"}}>❄️</p>
+        <h1 className="text-2xl font-black text-blue-900 mb-1">雪室出入庫管理</h1>
+        <p className="text-sm text-gray-500 mb-6">パスワードを入力してください</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            className="input-big text-center mb-4"
+            type="password"
+            value={pw}
+            onChange={e => setPw(e.target.value)}
+            placeholder="パスワード"
+            autoFocus
+            style={{fontSize:"24px",letterSpacing:"4px"}}
+          />
+          {error && <p className="text-red-500 text-sm font-bold mb-3">パスワードが違います</p>}
+          <button type="submit" className="big-btn btn-blue" style={{fontSize:"20px",minHeight:"56px"}}>
+            ログイン
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ================================================================
+//  メインApp
+// ================================================================
+function MainApp() {
+  const [data, setData] = useState(loadData);
+  const [page, setPage] = useState("home");
+  const [toast, setToast] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => { saveData(data); }, [data]);
+
+  // 起動時にGASからマスタデータを取得
+  useEffect(() => {
+    const config = loadGasConfig();
+    if (!config?.url) return;
+    setSyncing(true);
+    gasGet("getMasters").then(res => {
+      if (res && !res.error) {
+        setData(prev => ({
+          ...prev,
+          workers: res.workers && res.workers.length > 0 ? res.workers : prev.workers,
+          rooms: res.rooms && res.rooms.length > 0 ? res.rooms : prev.rooms,
+          customItems: res.items || prev.customItems,
+          gasConnected: true,
+        }));
+      }
+      setSyncing(false);
+    });
+  }, []);
+
+  const update = useCallback((fn) => {
+    setData(prev => { const next = JSON.parse(JSON.stringify(prev)); fn(next); return next; });
+  }, []);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000); };
+
+  // GASへ記録を送信
+  const sendRecord = useCallback(async (record) => {
+    const config = loadGasConfig();
+    if (!config?.url) return true;
+    const result = await gasPost({ action: "addRecord", record });
+    if (result && result.error) {
+      console.error("GAS送信エラー:", result.error);
+      return false;
+    }
+    return true;
+  }, []);
+
+  const stockMap = useMemo(() => {
+    const map = {};
+    data.records.forEach(r => {
+      const key = `${r.roomId}|||${r.itemName}|||${r.unit}`;
+      if (!map[key]) map[key] = { roomId: r.roomId, itemName: r.itemName, unit: r.unit, qty: 0 };
+      map[key].qty += r.type === "in" ? r.quantity : -r.quantity;
+    });
+    return Object.values(map).filter(s => s.qty > 0);
+  }, [data.records]);
+
+  const allItems = useMemo(() => {
+    const gasItems = (data.customItems || []).map(c => ({ name: c.name, category: c.category || "rice", emoji: c.category === "sake" ? "🍶" : "🌾" }));
+    // GAS接続時はスプレッドシートの品目のみ使用、未接続時はプリセット
+    return data.gasConnected ? gasItems : [...ITEMS_PRESET, ...gasItems];
+  }, [data.customItems, data.gasConnected]);
+
+  // 管理者モード: ヘッダー長押し
+  const pressTimer = useRef(null);
+  const handleHeaderDown = () => { pressTimer.current = setTimeout(() => setPage("admin"), 3000); };
+  const handleHeaderUp = () => { if (pressTimer.current) clearTimeout(pressTimer.current); };
+
+  return (
+    <div className="min-h-screen pb-8">
+      {toast && <div className="toast">{toast}</div>}
+
+      {/* ヘッダー */}
+      <div className="snow-header px-5 pt-6 pb-4 flex items-center justify-between"
+        onTouchStart={handleHeaderDown} onTouchEnd={handleHeaderUp} onTouchCancel={handleHeaderUp}
+        onMouseDown={handleHeaderDown} onMouseUp={handleHeaderUp} onMouseLeave={handleHeaderUp}>
+        <div>
+          <h1 className="text-2xl font-black text-blue-900">❄️ 雪室出入庫</h1>
+        </div>
+        {page !== "home" && page !== "admin" && (
+          <button onClick={() => setPage("home")} className="big-btn btn-gray" style={{width:"auto",minHeight:"48px",fontSize:"16px",padding:"10px 20px"}}>
+            ← 戻る
+          </button>
+        )}
+        {page === "admin" && (
+          <button onClick={() => setPage("home")} className="big-btn btn-gray" style={{width:"auto",minHeight:"48px",fontSize:"16px",padding:"10px 20px"}}>
+            ✕ 閉じる
+          </button>
+        )}
+      </div>
+
+      <div className="px-4 py-4 mx-auto" style={{maxWidth:"720px"}}>
+        {page === "home" && <HomePage setPage={setPage} syncing={syncing} gasConnected={data.gasConnected} />}
+        {page === "record_in" && <RecordPage mode="in" data={data} update={update} allItems={allItems} showToast={showToast} setPage={setPage} stockMap={stockMap} sendRecord={sendRecord} />}
+        {page === "record_out" && <RecordPage mode="out" data={data} update={update} allItems={allItems} showToast={showToast} setPage={setPage} stockMap={stockMap} sendRecord={sendRecord} />}
+        {page === "admin" && <AdminPage data={data} update={update} stockMap={stockMap} gasConnected={data.gasConnected} />}
+      </div>
+    </div>
+  );
+}
+
+// ================================================================
+//  ホーム画面 — 作業者はこれだけ
+// ================================================================
+function HomePage({ setPage, syncing, gasConnected }) {
+  return (
+    <div className="home-main-btns" style={{paddingTop:"15vh"}}>
+      <div className="grid grid-cols-2 gap-5">
+        <button className="big-btn btn-in" style={{minHeight:"140px",fontSize:"28px",flexDirection:"column",gap:"8px"}} onClick={() => setPage("record_in")} disabled={syncing}>
+          <span className="btn-icon" style={{fontSize:"48px"}}>📥</span>
+          入庫
+        </button>
+        <button className="big-btn btn-out" style={{minHeight:"140px",fontSize:"28px",flexDirection:"column",gap:"8px"}} onClick={() => setPage("record_out")} disabled={syncing}>
+          <span className="btn-icon" style={{fontSize:"48px"}}>📤</span>
+          出庫
+        </button>
+      </div>
+      {syncing && <p className="text-center text-blue-500 text-sm mt-4 font-medium">データ同期中...</p>}
+      <p className="text-center text-xs mt-6" style={{color: gasConnected ? "#22c55e" : "#9ca3af"}}>
+        {gasConnected ? "● スプレッドシート接続中" : loadGasConfig()?.url ? "○ 未接続" : ""}
+      </p>
+    </div>
+  );
+}
+
+// ================================================================
+//  入庫・出庫 記録画面（ステップ式）
+// ================================================================
+function RecordPage({ mode, data, update, allItems, showToast, setPage, stockMap, sendRecord }) {
+  const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    workerId: "", roomId: "", itemName: "", quantity: "", unit: "袋(30kg)", date: todayStr(), note: "",
+  });
+
+  const workerName = (id) => data.workers.find(w=>w.id===id)?.name || "";
+  const roomName = (id) => data.rooms.find(r=>r.id===id)?.name || "";
+  const isIn = mode === "in";
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    if (mode === "out") {
+      const stock = stockMap.find(s => s.roomId === form.roomId && s.itemName === form.itemName && s.unit === form.unit);
+      if (!stock || stock.qty < Number(form.quantity)) {
+        alert(`在庫不足です。\n現在の在庫: ${stock ? stock.qty : 0}${form.unit}`);
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    const record = {
+      id: genId(), type: mode, workerId: form.workerId, roomId: form.roomId,
+      workerName: workerName(form.workerId), roomName: roomName(form.roomId),
+      itemName: form.itemName, quantity: Number(form.quantity), unit: form.unit,
+      date: fmtDateFull(new Date(form.date + "T00:00:00").toISOString()),
+      note: form.note.trim(), createdAt: new Date().toISOString(),
+    };
+
+    // GASへ送信
+    const sent = await sendRecord(record);
+
+    // ローカルにも保存（バックアップ）
+    update(d => {
+      d.records.unshift({
+        ...record,
+        date: new Date(form.date + "T00:00:00").toISOString(),
+        gasSent: sent,
+      });
+    });
+
+    setSubmitting(false);
+    if (sent) {
+      showToast(isIn ? "✅ 入庫しました" : "✅ 出庫しました");
+    } else {
+      showToast("⚠️ 記録保存（送信失敗・ローカル保存済）");
+    }
+    setPage("home");
+  };
+
+  const stepTitle = ["","① 作業者","② 雪室","③ 品目","④ 数量","⑤ 確認"][step];
+
+  return (
+    <div>
+      {/* ステップバー */}
+      <div className={`rounded-xl p-4 mb-4 ${isIn ? "bg-green-50" : "bg-orange-50"}`}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`text-2xl font-black ${isIn ? "text-green-700" : "text-orange-700"}`}>
+            {isIn ? "📥 入庫" : "📤 出庫"}
+          </span>
+          <span className="text-lg text-gray-500 font-bold">{stepTitle}</span>
+        </div>
+        <div className="flex gap-1">
+          {[1,2,3,4,5].map(s => (
+            <div key={s} className={`h-2 flex-1 rounded-full ${s <= step ? (isIn ? "bg-green-500" : "bg-orange-500") : "bg-gray-200"}`} />
+          ))}
+        </div>
+      </div>
+
+      {/* Step 1: 作業者 */}
+      {step === 1 && (
+        <div className="space-y-3">
+          <p className="text-xl font-bold text-gray-700">作業者を選んでください</p>
+          {data.workers.map(w => (
+            <button key={w.id} className={`big-btn btn-white ${form.workerId === w.id ? "selected" : ""}`}
+              style={{minHeight:"72px",fontSize:"22px"}}
+              onClick={() => { setForm(f=>({...f, workerId: w.id})); setStep(2); }}>
+              👤 {w.name}
+            </button>
+          ))}
+          {data.workers.length === 0 && (
+            <div className="card text-center text-gray-400 text-lg py-8">
+              <p>作業者が登録されていません</p>
+              <p className="text-base mt-2">管理者にお問い合わせください</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 2: 雪室 */}
+      {step === 2 && (
+        <div className="space-y-3">
+          <p className="text-xl font-bold text-gray-700">雪室を選んでください</p>
+          {data.rooms.map(r => (
+            <button key={r.id} className={`big-btn btn-white ${form.roomId === r.id ? "selected" : ""}`}
+              style={{minHeight:"72px",fontSize:"22px"}}
+              onClick={() => { setForm(f=>({...f, roomId: r.id})); setStep(3); }}>
+              ❄️ {r.name}
+            </button>
+          ))}
+          <button className="big-btn btn-gray" style={{minHeight:"56px",fontSize:"18px"}} onClick={() => setStep(1)}>← 作業者に戻る</button>
+        </div>
+      )}
+
+      {/* Step 3: 品目 */}
+      {step === 3 && (
+        <div className="space-y-3">
+          <p className="text-xl font-bold text-gray-700">品目を選んでください</p>
+          <div className="grid grid-cols-2 gap-3 item-grid">
+            {allItems.map((item, i) => (
+              <button key={i} className={`big-btn btn-white ${form.itemName === item.name ? "selected" : ""}`}
+                style={{minHeight:"64px",fontSize:"18px"}}
+                onClick={() => { setForm(f=>({...f, itemName: item.name})); setStep(4); }}>
+                {item.emoji} {item.name}
+              </button>
+            ))}
+          </div>
+          <button className="big-btn btn-gray" style={{minHeight:"56px",fontSize:"18px"}} onClick={() => setStep(2)}>← 雪室に戻る</button>
+        </div>
+      )}
+
+      {/* Step 4: 数量 */}
+      {step === 4 && (
+        <div className="space-y-4">
+          <p className="text-xl font-bold text-gray-700">数量を入力してください</p>
+          <div className="card">
+            <label className="label">数量</label>
+            <input className="input-big" type="number" inputMode="numeric" min="1" step="1"
+              value={form.quantity} onChange={e => setForm(f=>({...f, quantity: e.target.value}))}
+              placeholder="0" autoFocus style={{fontSize:"28px",textAlign:"center"}} />
+          </div>
+          <div className="card">
+            <label className="label">単位</label>
+            <div className="grid grid-cols-2 gap-2 unit-grid">
+              {UNITS.map(u => (
+                <button key={u} className={`big-btn btn-white ${form.unit === u ? "selected" : ""}`}
+                  style={{minHeight:"52px",fontSize:"16px"}}
+                  onClick={() => setForm(f=>({...f, unit: u}))}>
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <label className="label">日付</label>
+            <input className="input-big" type="date" value={form.date} onChange={e => setForm(f=>({...f, date: e.target.value}))} />
+          </div>
+          <div className="card">
+            <label className="label">メモ（任意）</label>
+            <input className="input-big" value={form.note} onChange={e => setForm(f=>({...f, note: e.target.value}))} placeholder="出荷先など" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="big-btn btn-gray" style={{fontSize:"18px"}} onClick={() => setStep(3)}>← 品目に戻る</button>
+            <button className={`big-btn ${isIn ? "btn-in" : "btn-out"}`} style={{fontSize:"18px"}}
+              disabled={!form.quantity || Number(form.quantity) <= 0}
+              onClick={() => { if (form.quantity && Number(form.quantity) > 0) setStep(5); }}>
+              確認へ →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: 確認 */}
+      {step === 5 && (
+        <div className="space-y-4">
+          <p className="text-xl font-bold text-gray-700">この内容で記録しますか？</p>
+          <div className="card space-y-3">
+            <ConfirmRow label="種別" value={isIn ? "📥 入庫" : "📤 出庫"} />
+            <ConfirmRow label="作業者" value={`👤 ${workerName(form.workerId)}`} />
+            <ConfirmRow label="雪室" value={`❄️ ${roomName(form.roomId)}`} />
+            <ConfirmRow label="品目" value={`🌾 ${form.itemName}`} />
+            <ConfirmRow label="数量" value={`${form.quantity} ${form.unit}`} highlight />
+            <ConfirmRow label="日付" value={fmtDateFull(form.date + "T00:00:00")} />
+            {form.note && <ConfirmRow label="メモ" value={form.note} />}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="big-btn btn-gray" style={{fontSize:"18px"}} onClick={() => setStep(4)}>← 修正する</button>
+            <button className={`big-btn ${isIn ? "btn-in" : "btn-out"}`} style={{fontSize:"20px",minHeight:"72px",opacity: submitting ? 0.6 : 1}}
+              onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "送信中..." : "✅ 記録する"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfirmRow({ label, value, highlight }) {
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0 confirm-row">
+      <span className="text-lg text-gray-500 font-medium">{label}</span>
+      <span className={`text-lg font-bold ${highlight ? "text-blue-700 text-2xl" : "text-gray-800"}`}>{value}</span>
+    </div>
+  );
+}
+
+// ================================================================
+//  管理者画面（ヘッダー長押しで表示）
+// ================================================================
+function AdminPage({ data, update, stockMap, gasConnected }) {
+  const [tab, setTab] = useState("stock"); // stock, history, settings
+
+  return (
+    <div>
+      <div className="bg-blue-900 text-white rounded-xl p-3 mb-4 text-center">
+        <p className="text-lg font-bold">🔒 管理者モード</p>
+        <p className="text-xs mt-1" style={{color: gasConnected ? "#86efac" : "#fbbf24"}}>
+          {gasConnected ? "● スプレッドシート接続中" : loadGasConfig()?.url ? "⚠ 未接続（オフライン）" : "GAS未設定（ローカルモード）"}
+        </p>
+      </div>
+
+      {/* タブ */}
+      <div className="flex gap-2 mb-4">
+        {[
+          { id: "stock", label: "📊 在庫" },
+          { id: "history", label: "📋 履歴" },
+          { id: "settings", label: "⚙️ 設定" },
+        ].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`big-btn ${tab === t.id ? "btn-blue" : "btn-white"}`}
+            style={{minHeight:"48px",fontSize:"16px"}}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "stock" && <AdminStock data={data} stockMap={stockMap} />}
+      {tab === "history" && <AdminHistory data={data} update={update} />}
+      {tab === "settings" && <AdminSettings data={data} update={update} gasConnected={gasConnected} />}
+    </div>
+  );
+}
+
+// ── 在庫一覧 ──
+function AdminStock({ data, stockMap }) {
+  const roomName = (id) => data.rooms.find(r=>r.id===id)?.name || "不明";
+  return (
+    <div>
+      <h2 className="text-xl font-black text-gray-800 mb-3">📊 現在の在庫</h2>
+      {stockMap.length === 0 ? (
+        <div className="card text-center text-gray-400 text-lg py-8">在庫データがありません</div>
+      ) : (
+        <div className="space-y-3">
+          {data.rooms.map(room => {
+            const items = stockMap.filter(s => s.roomId === room.id);
+            if (items.length === 0) return null;
+            return (
+              <div key={room.id} className="card">
+                <p className="text-lg font-bold text-blue-800 mb-2">❄️ {room.name}</p>
+                {items.map((s,i) => (
+                  <div key={i} className="flex justify-between items-center py-2 px-2 bg-gray-50 rounded-lg mb-1">
+                    <span className="text-lg font-medium">🌾 {s.itemName}</span>
+                    <span className="text-xl font-black text-blue-700">{s.qty} <span className="text-base font-medium text-gray-500">{s.unit}</span></span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 履歴 ──
+function AdminHistory({ data, update }) {
+  const [deleteId, setDeleteId] = useState(null);
+  const recent = data.records.slice(0, 50);
+  const workerName = (id) => data.workers.find(w=>w.id===id)?.name || "不明";
+  const roomName = (id) => data.rooms.find(r=>r.id===id)?.name || "不明";
+
+  const handleDelete = (id) => {
+    update(d => { d.records = d.records.filter(r => r.id !== id); });
+    setDeleteId(null);
+  };
+
+  const exportData = () => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `yukimuro_backup_${todayStr()}.json`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // CSV出力
+  const exportCSV = () => {
+    const header = "日付,種別,作業者,雪室,品目,数量,単位,メモ\n";
+    const rows = data.records.map(r =>
+      `${fmtDateFull(r.date)},${r.type==="in"?"入庫":"出庫"},${workerName(r.workerId)},${roomName(r.roomId)},${r.itemName},${r.quantity},${r.unit},${r.note||""}`
+    ).join("\n");
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + header + rows], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `入出庫記録_${todayStr()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-xl font-black text-gray-800">📋 入出庫の履歴</h2>
+        <div className="flex gap-2">
+          <button className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg" onClick={exportCSV}>CSV出力</button>
+          <button className="text-sm font-bold text-gray-600 bg-gray-100 px-3 py-2 rounded-lg" onClick={exportData}>JSON</button>
+        </div>
+      </div>
+      {recent.length === 0 ? (
+        <div className="card text-center text-gray-400 text-lg py-8">まだ記録がありません</div>
+      ) : (
+        <div className="space-y-2">
+          {recent.map(r => (
+            <div key={r.id} className={`history-item ${r.type === "in" ? "history-in" : "history-out"}`}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={r.type === "in" ? "badge-in" : "badge-out"}>
+                      {r.type === "in" ? "入庫" : "出庫"}
+                    </span>
+                    <span className="text-lg font-bold text-gray-800">{r.itemName}</span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {fmtDateFull(r.date)} ・ 👤{workerName(r.workerId)} ・ ❄️{roomName(r.roomId)}
+                    {r.note && <span className="ml-1">・ {r.note}</span>}
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-3">
+                  <div className="text-xl font-black text-blue-700">{r.quantity}</div>
+                  <div className="text-xs text-gray-500">{r.unit}</div>
+                </div>
+              </div>
+              <button className="text-xs text-red-400 mt-1" onClick={() => setDeleteId(r.id)}>取消</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {deleteId && (
+        <div className="modal-bg" onClick={() => setDeleteId(null)}>
+          <div className="card max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
+            <p className="text-4xl mb-3">⚠️</p>
+            <p className="text-xl font-bold mb-1">この記録を取り消しますか？</p>
+            <p className="text-base text-gray-500 mb-4">在庫数が変わります</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button className="big-btn btn-danger" style={{fontSize:"18px"}} onClick={() => handleDelete(deleteId)}>取り消す</button>
+              <button className="big-btn btn-gray" style={{fontSize:"18px"}} onClick={() => setDeleteId(null)}>やめる</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── 設定 ──
+function AdminSettings({ data, update, gasConnected }) {
+  const [section, setSection] = useState(null);
+  const [newName, setNewName] = useState("");
+
+  const addWorker = () => { if (!newName.trim()) return; update(d => { d.workers.push({ id: genId(), name: newName.trim() }); }); setNewName(""); };
+  const removeWorker = (id) => { if (!confirm("この作業者を削除しますか？")) return; update(d => { d.workers = d.workers.filter(w => w.id !== id); }); };
+  const addRoom = () => { if (!newName.trim()) return; update(d => { d.rooms.push({ id: genId(), name: newName.trim() }); }); setNewName(""); };
+  const removeRoom = (id) => { if (!confirm("この雪室を削除しますか？\n関連する記録も削除されます。")) return; update(d => { d.rooms = d.rooms.filter(r => r.id !== id); d.records = d.records.filter(r => r.roomId !== id); }); };
+  const addItem = () => { if (!newName.trim()) return; update(d => { if (!d.customItems) d.customItems = []; d.customItems.push({ name: newName.trim(), category: "other" }); }); setNewName(""); };
+  const removeItem = (name) => { update(d => { d.customItems = (d.customItems||[]).filter(c => c.name !== name); }); };
+
+  if (!section) {
+    const currentConfig = loadGasConfig();
+    return (
+      <div className="space-y-3">
+        <h2 className="text-xl font-black text-gray-800 mb-2">⚙️ 設定</h2>
+        {gasConnected && (
+          <div className="card" style={{padding:"12px 16px", background:"#f0fdf4", border:"1px solid #bbf7d0"}}>
+            <p className="text-sm text-green-800 font-medium">📗 作業者・雪室・品目はスプレッドシートで管理されています。変更はスプレッドシート側で行ってください。</p>
+          </div>
+        )}
+        <button className="big-btn btn-white" style={{minHeight:"64px",fontSize:"18px"}} onClick={() => setSection("gas")}>
+          🔗 GAS接続設定 <span className="text-base ml-2" style={{color: currentConfig?.url ? "#22c55e" : "#f59e0b"}}>{currentConfig?.url ? "（設定済）" : "（未設定）"}</span>
+        </button>
+        <button className="big-btn btn-white" style={{minHeight:"64px",fontSize:"18px"}} onClick={() => { setSection("workers"); setNewName(""); }}>
+          👤 作業者の管理 <span className="text-base text-gray-400 ml-2">({data.workers.length}名)</span>
+        </button>
+        <button className="big-btn btn-white" style={{minHeight:"64px",fontSize:"18px"}} onClick={() => { setSection("rooms"); setNewName(""); }}>
+          ❄️ 雪室の管理 <span className="text-base text-gray-400 ml-2">({data.rooms.length}室)</span>
+        </button>
+        <button className="big-btn btn-white" style={{minHeight:"64px",fontSize:"18px"}} onClick={() => { setSection("items"); setNewName(""); }}>
+          🌾 品目の追加 <span className="text-base text-gray-400 ml-2">(カスタム{(data.customItems||[]).length}件)</span>
+        </button>
+        <div className="mt-6 pt-4" style={{borderTop:"1px solid #e5e7eb"}}>
+          <button className="text-sm text-red-400 font-medium" onClick={() => {
+            if (confirm("ログアウトしますか？\n次回アクセス時にパスワードの再入力が必要です。")) {
+              try { localStorage.removeItem(AUTH_KEY); } catch(e) {}
+              location.reload();
+            }
+          }}>ログアウト</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <button className="text-sm font-bold text-blue-600" onClick={() => setSection(null)}>← 設定に戻る</button>
+
+      {section === "workers" && (
+        <>
+          <h2 className="text-xl font-black text-gray-800">👤 作業者の管理</h2>
+          <div className="flex gap-2">
+            <input className="input-big flex-1" value={newName} onChange={e => setNewName(e.target.value)} placeholder="名前を入力" style={{fontSize:"16px"}} />
+            <button className="big-btn btn-blue" style={{width:"auto",padding:"12px 20px",fontSize:"16px",minHeight:"48px"}} onClick={addWorker}>追加</button>
+          </div>
+          {data.workers.map(w => (
+            <div key={w.id} className="card flex justify-between items-center" style={{padding:"14px 16px"}}>
+              <span className="text-lg font-bold">👤 {w.name}</span>
+              <button className="text-red-400 font-bold px-2" onClick={() => removeWorker(w.id)}>✕</button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {section === "rooms" && (
+        <>
+          <h2 className="text-xl font-black text-gray-800">❄️ 雪室の管理</h2>
+          <div className="flex gap-2">
+            <input className="input-big flex-1" value={newName} onChange={e => setNewName(e.target.value)} placeholder="雪室名を入力" style={{fontSize:"16px"}} />
+            <button className="big-btn btn-blue" style={{width:"auto",padding:"12px 20px",fontSize:"16px",minHeight:"48px"}} onClick={addRoom}>追加</button>
+          </div>
+          {data.rooms.map(r => (
+            <div key={r.id} className="card flex justify-between items-center" style={{padding:"14px 16px"}}>
+              <span className="text-lg font-bold">❄️ {r.name}</span>
+              <button className="text-red-400 font-bold px-2" onClick={() => removeRoom(r.id)}>✕</button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {section === "gas" && <GasSettings onBack={() => setSection(null)} />}
+
+      {section === "items" && (
+        <>
+          <h2 className="text-xl font-black text-gray-800">🌾 品目の追加</h2>
+          <p className="text-sm text-gray-500">日本酒の銘柄など、プリセット以外を追加</p>
+          <div className="flex gap-2">
+            <input className="input-big flex-1" value={newName} onChange={e => setNewName(e.target.value)} placeholder="品目名を入力" style={{fontSize:"16px"}} />
+            <button className="big-btn btn-blue" style={{width:"auto",padding:"12px 20px",fontSize:"16px",minHeight:"48px"}} onClick={addItem}>追加</button>
+          </div>
+          {(data.customItems||[]).map((c,i) => (
+            <div key={i} className="card flex justify-between items-center" style={{padding:"14px 16px"}}>
+              <span className="text-lg font-bold">📦 {c.name}</span>
+              <button className="text-red-400 font-bold px-2" onClick={() => removeItem(c.name)}>✕</button>
+            </div>
+          ))}
+          {(data.customItems||[]).length === 0 && <p className="text-gray-400 text-center py-3 text-sm">カスタム品目なし</p>}
+          <div className="card" style={{padding:"14px 16px"}}>
+            <p className="text-sm font-bold text-gray-500 mb-2">プリセット品目</p>
+            <div className="flex flex-wrap gap-1">
+              {ITEMS_PRESET.map((item,i) => (
+                <span key={i} className="bg-gray-100 px-2 py-1 rounded text-sm">{item.emoji} {item.name}</span>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── GAS接続設定 ──
+function GasSettings({ onBack }) {
+  const existing = loadGasConfig() || { url: "", apiKey: "" };
+  const [url, setUrl] = useState(existing.url || "");
+  const [apiKey, setApiKey] = useState(existing.apiKey || "");
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState(null); // "ok" | "error" | null
+
+  const handleSave = () => {
+    if (!url.trim()) {
+      // URLを空にしたらGAS設定をクリア
+      saveGasConfig(null);
+      try { localStorage.removeItem(GAS_CONFIG_KEY); } catch(e) {}
+      setResult("cleared");
+      setTimeout(() => location.reload(), 800);
+      return;
+    }
+    saveGasConfig({ url: url.trim(), apiKey: apiKey.trim() });
+    setResult("saved");
+    setTimeout(() => location.reload(), 800);
+  };
+
+  const handleTest = async () => {
+    if (!url.trim()) return;
+    setTesting(true);
+    setResult(null);
+    try {
+      const testUrl = `${url.trim()}?action=getMasters&key=${encodeURIComponent(apiKey.trim())}`;
+      const res = await fetch(testUrl);
+      const json = await res.json();
+      if (json.error) {
+        setResult("error");
+      } else if (json.workers || json.rooms || json.items) {
+        setResult("ok");
+      } else {
+        setResult("error");
+      }
+    } catch(e) {
+      console.error("GAS接続テストエラー:", e);
+      setResult("error");
+    }
+    setTesting(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-black text-gray-800">🔗 GAS接続設定</h2>
+      <p className="text-sm text-gray-500">Google Apps ScriptのWebアプリURLを設定すると、スプレッドシートと自動同期されます。</p>
+
+      <div className="card space-y-4">
+        <div>
+          <label className="label">GAS WebアプリURL</label>
+          <input className="input-big" value={url} onChange={e => setUrl(e.target.value)}
+            placeholder="https://script.google.com/macros/s/.../exec"
+            style={{fontSize:"14px",wordBreak:"break-all"}} />
+        </div>
+        <div>
+          <label className="label">APIキー（任意）</label>
+          <input className="input-big" value={apiKey} onChange={e => setApiKey(e.target.value)}
+            placeholder="設定した場合、GAS側でも同じキーを設定"
+            style={{fontSize:"14px"}} />
+          <p className="text-xs text-gray-400 mt-1">GAS側にAPIキーを設定している場合のみ入力</p>
+        </div>
+      </div>
+
+      {result === "ok" && <div className="card text-center" style={{background:"#f0fdf4",border:"1px solid #bbf7d0"}}><p className="text-green-700 font-bold">✅ 接続成功！マスタデータを取得できました</p></div>}
+      {result === "error" && <div className="card text-center" style={{background:"#fef2f2",border:"1px solid #fecaca"}}><p className="text-red-700 font-bold">❌ 接続失敗。URLやAPIキーを確認してください</p></div>}
+      {result === "saved" && <div className="card text-center" style={{background:"#eff6ff",border:"1px solid #bfdbfe"}}><p className="text-blue-700 font-bold">💾 保存しました。再読み込みします...</p></div>}
+      {result === "cleared" && <div className="card text-center" style={{background:"#fefce8",border:"1px solid #fef08a"}}><p className="text-yellow-700 font-bold">GAS設定をクリアしました。再読み込みします...</p></div>}
+
+      <div className="grid grid-cols-2 gap-3">
+        <button className="big-btn btn-white" style={{fontSize:"16px",minHeight:"56px"}} onClick={handleTest} disabled={testing || !url.trim()}>
+          {testing ? "接続テスト中..." : "🔍 接続テスト"}
+        </button>
+        <button className="big-btn btn-blue" style={{fontSize:"16px",minHeight:"56px"}} onClick={handleSave}>
+          💾 保存して反映
+        </button>
+      </div>
+
+      <button className="text-sm font-bold text-blue-600" onClick={onBack}>← 設定に戻る</button>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
